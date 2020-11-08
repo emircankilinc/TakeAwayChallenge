@@ -5,6 +5,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+//github.com/emircankilinc/takeawaychallenge
+
 import com.takeaway.takeaway_game.server.RabbitMqExample;
 
 @SpringBootApplication
