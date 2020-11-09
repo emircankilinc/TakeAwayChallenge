@@ -65,9 +65,8 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 			String selectedRival = scan.nextLine();
 			Boolean startGame = gameClientController
 					.startGame(new Player(registerGame, Integer.valueOf(selectedRival), MoveState.START, null));
-			System.out.println("Game is starting with player: " + selectedRival);
-
 			if (Boolean.TRUE.equals(startGame)) {
+				System.out.println("Game is starting with player: " + selectedRival);
 				DefaultConsumer consumer = new DefaultConsumer(channel) {
 					@Override
 					public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
@@ -78,7 +77,6 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 						Player nextMove = new Player();
 						nextMove.setPlayerId(player.getRivalId());
 						nextMove.setRivalId(player.getPlayerId());
-
 						if (player.getMoveState().equals(MoveState.END)) {
 							System.out.print("Winner : Player " + player.getPlayerId());
 						} else {
@@ -107,9 +105,7 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 				};
 				channel.basicConsume(QUEUE_NAME + registerGame.toString(), true, consumer);
 			}
-		} catch (
-
-		IOException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (TimeoutException e) {
 			e.printStackTrace();
