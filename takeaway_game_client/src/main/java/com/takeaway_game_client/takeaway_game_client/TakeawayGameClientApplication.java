@@ -1,8 +1,8 @@
 package com.takeaway_game_client.takeaway_game_client;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
@@ -58,48 +58,55 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 			channel.queueDeclare(QUEUE_NAME + registerGame.toString(), false, false, false, null);
 			channel.queueBind(QUEUE_NAME + registerGame.toString(), "x.game", registerGame.toString());
 			System.out.println("Queue is opened : " + QUEUE_NAME + registerGame.toString());
+			System.out.println("Player is registered : " + registerGame.toString());
+			Collection<Integer> activePlayers = gameClientController.getActivePlayers(registerGame);
+			System.out.println("Choose one of the active players : " + activePlayers);
+			Scanner scan = new Scanner(System.in); // Create a Scanner object
+			String selectedRival = scan.nextLine();
+			Boolean startGame = gameClientController
+					.startGame(new Player(registerGame, Integer.valueOf(selectedRival), MoveState.START, null));
+			System.out.println("Game is starting with player: " + selectedRival);
 
-			DefaultConsumer consumer = new DefaultConsumer(channel) {
-				@Override
-				public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
-						byte[] body) throws IOException {
-					String message = new String(body, "UTF-8");
-					Player player = obj.readValue(message, Player.class);
+			if (Boolean.TRUE.equals(startGame)) {
+				DefaultConsumer consumer = new DefaultConsumer(channel) {
+					@Override
+					public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
+							byte[] body) throws IOException {
+						String message = new String(body, "UTF-8");
+						Player player = obj.readValue(message, Player.class);
 
-					Player nextMove = new Player();
-					nextMove.setPlayerId(player.getRivalId());
-					nextMove.setRivalId(player.getPlayerId());
+						Player nextMove = new Player();
+						nextMove.setPlayerId(player.getRivalId());
+						nextMove.setRivalId(player.getPlayerId());
 
-					if (player.getMoveState().equals(MoveState.END)) {
-						System.out.print("Winner : Player2");
-					} else {
-						Scanner scan = new Scanner(System.in); // Create a Scanner object
-						System.out.print("Select your choose in {-1, 0 , 1} : ");
-						String userChoice = scan.nextLine(); // Read user input
-
-						while (!suitNumbers.contains(userChoice)) {
-							System.out.print("Select your choose in {-1, 0 , 1} : ");
-							userChoice = scan.nextLine(); // Read user input
-						}
-
-						Integer nextValue = (player.getNextValue() + Integer.valueOf(userChoice)) / 3;
-
-						if (nextValue == 1) {
-							nextMove.setMoveState(MoveState.END);
-							var writeValueAsString = obj.writeValueAsString(nextMove);
-							template.convertAndSend("x.game", nextMove.getRivalId().toString(), writeValueAsString);
+						if (player.getMoveState().equals(MoveState.END)) {
+							System.out.print("Winner : Player " + player.getPlayerId());
 						} else {
-							nextMove.setMoveState(MoveState.NEXT_MOVE);
-							nextMove.setNextValue(nextValue);
-							var writeValueAsString = obj.writeValueAsString(nextMove);
-							template.convertAndSend("x.game", nextMove.getRivalId().toString(), writeValueAsString);
-						}
+							System.out.print(
+									"Value is : " + player.getNextValue() + " so select your choose in {-1, 0 , 1} : ");
+							String userChoice = scan.nextLine(); // Read user input
 
+							while (!suitNumbers.contains(userChoice)) {
+								System.out.print("You must select in {-1, 0 , 1} : ");
+								userChoice = scan.nextLine(); // Read user input
+							}
+							Integer nextValue = (player.getNextValue() + Integer.valueOf(userChoice)) / 3;
+
+							if (nextValue == 1) {
+								nextMove.setMoveState(MoveState.END);
+								var writeValueAsString = obj.writeValueAsString(nextMove);
+								template.convertAndSend("x.game", nextMove.getRivalId().toString(), writeValueAsString);
+							} else {
+								nextMove.setMoveState(MoveState.NEXT_MOVE);
+								nextMove.setNextValue(nextValue);
+								var writeValueAsString = obj.writeValueAsString(nextMove);
+								template.convertAndSend("x.game", nextMove.getRivalId().toString(), writeValueAsString);
+							}
+						}
 					}
-					System.out.println(" [x] Received '" + message + "'");
-				}
-			};
-			channel.basicConsume(QUEUE_NAME + registerGame.toString(), true, consumer);
+				};
+				channel.basicConsume(QUEUE_NAME + registerGame.toString(), true, consumer);
+			}
 		} catch (
 
 		IOException e) {
