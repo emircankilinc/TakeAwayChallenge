@@ -8,4 +8,6 @@ public interface IGameService {
 
 	Map<String, Integer> getActivePlayers(String playerId);
 
+	Boolean startGame(String player);
+
 }
