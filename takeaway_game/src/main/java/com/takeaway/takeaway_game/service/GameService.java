@@ -2,6 +2,7 @@ package com.takeaway.takeaway_game.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.websocket.server.PathParam;
 
@@ -46,7 +47,11 @@ public class GameService implements IGameService {
 	@Override
 	public Map<String, Integer> getActivePlayers(@PathParam("playerId") String playerId) {
 		HashMap<String, Integer> clonedMap = (HashMap<String, Integer>) registeredPlayers.clone();
-		clonedMap.remove(playerId);
+		for (Entry<String, Integer> entry : clonedMap.entrySet()) {
+			if (playerId.equals(entry.getValue().toString())) {
+				clonedMap.remove(entry.getKey());
+			}
+		}
 		return clonedMap;
 	}
 
