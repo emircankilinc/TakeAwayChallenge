@@ -5,13 +5,31 @@ import java.util.Map;
 
 import javax.websocket.server.PathParam;
 
+import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.takeaway.takeaway_game.entity.Player;
+import com.takeaway.takeaway_game.server.GameServerProducer;
 
 @RestController
 public class GameService implements IGameService {
 
 	private static final HashMap<String, Integer> registeredPlayers = new HashMap<String, Integer>();
+
+	@Autowired
+	private GameServerProducer gameServerProducer;
+
+	@Autowired
+	private RabbitTemplate rabbittemplate;
+
+	private static ObjectMapper obj = new ObjectMapper();
 
 	@GetMapping("/register")
 	@Override
@@ -30,6 +48,20 @@ public class GameService implements IGameService {
 		HashMap<String, Integer> clonedMap = (HashMap<String, Integer>) registeredPlayers.clone();
 		clonedMap.remove(playerId);
 		return clonedMap;
+	}
+
+	@PostMapping(value = "/start", consumes = "application/json", produces = "application/json")
+	@Override
+	public Boolean startGame(@RequestBody Player player) {
+		try {
+			rabbittemplate.convertAndSend("x.game", player.getRivalId().toString(),
+					new ObjectMapper().writeValueAsString(player));
+		} catch (AmqpException e) {
+			return Boolean.FALSE;
+		} catch (JsonProcessingException e) {
+			return Boolean.FALSE;
+		}
+		return Boolean.TRUE;
 	}
 
 }
