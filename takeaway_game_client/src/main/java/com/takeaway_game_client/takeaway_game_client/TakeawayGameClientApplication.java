@@ -98,6 +98,7 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 									var writeValueAsString = obj.writeValueAsString(nextMove);
 									template.convertAndSend("x.game", nextMove.getRivalId().toString(),
 											writeValueAsString);
+									System.out.print("Winner : Player " + player.getPlayerId());
 								} else {
 									nextMove.setMoveState(MoveState.NEXT_MOVE);
 									nextMove.setNextValue(nextValue);
