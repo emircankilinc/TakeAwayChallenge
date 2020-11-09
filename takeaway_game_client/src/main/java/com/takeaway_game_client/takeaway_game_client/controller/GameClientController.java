@@ -12,9 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.takeaway_game_client.takeaway_game_client.entity.MoveState;
 import com.takeaway_game_client.takeaway_game_client.entity.Player;
 
 public class GameClientController {
@@ -33,13 +31,13 @@ public class GameClientController {
 		String generatedString = new String(array, Charset.forName("UTF-8"));
 		restTemplate = new RestTemplate();
 		ResponseEntity<String> call = restTemplate
-				.getForEntity("http://localhost:5555/register?playerId=" + generatedString, String.class);
+				.getForEntity("http://172.17.42.49:5555/register?playerId=" + generatedString, String.class);
 		return Integer.valueOf(call.getBody());
 	}
 
 	public Collection<Integer> getActivePlayers(Integer playerId) {
 		restTemplate = new RestTemplate();
-		ResponseEntity<Map> call = restTemplate.getForEntity("http://localhost:5555/active?playerId=" + playerId,
+		ResponseEntity<Map> call = restTemplate.getForEntity("http://172.17.42.49:5555/active?playerId=" + playerId,
 				Map.class);
 		Map<String, Integer> body = call.getBody();
 		return body.values();
@@ -53,7 +51,7 @@ public class GameClientController {
 
 		restTemplate = new RestTemplate();
 
-		String url = "http://localhost:5555/start";
+		String url = "http://172.17.42.49:5555/start";
 		headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		playerJsonObject = new JSONObject();
