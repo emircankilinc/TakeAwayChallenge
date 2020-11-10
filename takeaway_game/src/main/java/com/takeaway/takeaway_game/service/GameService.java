@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.takeaway.takeaway_game.entity.Player;
-import com.takeaway.takeaway_game.server.GameServerProducer;
 
 @RestController
 public class GameService implements IGameService {
@@ -25,12 +24,8 @@ public class GameService implements IGameService {
 	private static final HashMap<String, Integer> registeredPlayers = new HashMap<String, Integer>();
 
 	@Autowired
-	private GameServerProducer gameServerProducer;
-
-	@Autowired
 	private RabbitTemplate rabbittemplate;
 
-	private static ObjectMapper obj = new ObjectMapper();
 
 	@GetMapping("/register")
 	@Override
@@ -50,6 +45,7 @@ public class GameService implements IGameService {
 		for (Entry<String, Integer> entry : clonedMap.entrySet()) {
 			if (playerId.equals(entry.getValue().toString())) {
 				clonedMap.remove(entry.getKey());
+				return clonedMap;
 			}
 		}
 		return clonedMap;
