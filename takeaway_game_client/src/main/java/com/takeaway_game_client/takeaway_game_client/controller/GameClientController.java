@@ -1,9 +1,9 @@
 package com.takeaway_game_client.takeaway_game_client.controller;
 
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 import org.json.JSONObject;
 import org.springframework.http.HttpEntity;
@@ -12,26 +12,21 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.takeaway_game_client.takeaway_game_client.entity.Player;
 
 public class GameClientController {
 
 	private static HttpHeaders headers;
 
-	private final ObjectMapper objectMapper = new ObjectMapper();
-
 	private static JSONObject playerJsonObject;
 
 	private static RestTemplate restTemplate;
 
 	public Integer registerGame() {
-		byte[] array = new byte[7]; // length is bounded by 7
-		new Random().nextBytes(array);
-		String generatedString = new String(array, Charset.forName("UTF-8"));
+		String generatedString = UUID.randomUUID().toString();
 		restTemplate = new RestTemplate();
-		ResponseEntity<String> call = restTemplate
-				.getForEntity("http://127.0.0.1:5555/register?playerId=" + generatedString, String.class);
+		ResponseEntity<String> call = restTemplate.getForEntity(
+				"http://127.0.0.1:5555/register?playerId=" + generatedString.replace("-", ""), String.class);
 		return Integer.valueOf(call.getBody());
 	}
 
