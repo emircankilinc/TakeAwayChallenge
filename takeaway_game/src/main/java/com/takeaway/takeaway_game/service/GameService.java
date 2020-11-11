@@ -26,7 +26,6 @@ public class GameService implements IGameService {
 	@Autowired
 	private RabbitTemplate rabbittemplate;
 
-
 	@GetMapping("/register")
 	@Override
 	public Integer registerGame(@PathParam("playerId") String playerId) {
@@ -55,7 +54,7 @@ public class GameService implements IGameService {
 	@Override
 	public Boolean startGame(@RequestBody Player player) {
 		try {
-			rabbittemplate.convertAndSend("x.game", player.getRivalId().toString(),
+			rabbittemplate.convertAndSend("x.game", player.getPlayerId().toString(),
 					new ObjectMapper().writeValueAsString(player));
 		} catch (AmqpException e) {
 			return Boolean.FALSE;
