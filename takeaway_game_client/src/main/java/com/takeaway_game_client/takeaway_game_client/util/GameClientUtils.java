@@ -20,7 +20,8 @@ public class GameClientUtils {
 		connection = factory.newConnection();
 		Channel channel = connection.createChannel();
 		channel.queueDeclare(GameClientConstants.QUEUE_NAME + registerGame.toString(), false, false, false, null);
-		channel.queueBind(GameClientConstants.QUEUE_NAME + registerGame.toString(), "x.game", registerGame.toString());
+		channel.queueBind(GameClientConstants.QUEUE_NAME + registerGame.toString(), GameClientConstants.EXCHANGE_NAME,
+				registerGame.toString());
 		return channel;
 	}
 

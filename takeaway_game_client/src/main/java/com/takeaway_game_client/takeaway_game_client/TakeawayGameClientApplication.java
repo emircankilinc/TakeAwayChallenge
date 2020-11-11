@@ -7,6 +7,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -28,6 +29,9 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 	@Autowired
 	private RabbitTemplate template;
 
+	@Value("${game.url}")
+	private String baseUrl;
+
 	private static ObjectMapper obj = new ObjectMapper();
 
 	public static void main(String[] args) {
@@ -37,23 +41,21 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		GameClientController gameClientController = new GameClientController();
-		Integer registerGame = gameClientController.registerGame();
-
+		Integer registerGame = gameClientController.registerGame(baseUrl);// register game
 		try {
-			Channel channel = GameClientUtils.getClientChannel(registerGame);
-			System.out.println("[LOG] Queue is opened : " + GameClientConstants.QUEUE_NAME + registerGame.toString());
-			System.out.println("Player is registered : " + registerGame.toString());
-			Collection<Integer> activePlayers = gameClientController.getActivePlayers(registerGame);
+			System.out.println("You registered as ----> Player " + registerGame.toString());
+			Collection<Integer> activePlayers = gameClientController.getActivePlayers(registerGame, baseUrl);// get
+																												// active
+			// players
 			if (activePlayers.size() < 1) {
-				System.out.println("Currently no active users!!!");
-				activePlayers = gameClientController.getActivePlayers(registerGame);
+				System.out.println("Currently no online players!");
 				while (activePlayers.size() < 1) {
-					Thread.sleep(3000);
-					System.out.println("Controlling active players!!!");
-					activePlayers = gameClientController.getActivePlayers(registerGame);
+					Thread.sleep(5000);
+					System.out.println("Controlling online players!");
+					activePlayers = gameClientController.getActivePlayers(registerGame, baseUrl);
 				}
 			}
-			playGame(channel, gameClientController, activePlayers, registerGame);
+			playGame(gameClientController, activePlayers, registerGame);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (TimeoutException e) {
@@ -61,34 +63,35 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 		}
 	}
 
-	private void playGame(Channel channel, GameClientController gameClientController, Collection<Integer> activePlayers,
-			Integer registerGame) throws IOException {
+	private void playGame(GameClientController gameClientController, Collection<Integer> activePlayers,
+			Integer registerGame) throws IOException, TimeoutException {
+		Channel channel = GameClientUtils.getClientChannel(registerGame);// queue is opened
 		System.out.println("Choose one of the active players : " + activePlayers);
 		Scanner scan = new Scanner(System.in); // Create a Scanner object
 		String selectedRival = scan.nextLine();
 		Boolean startGame = gameClientController
-				.startGame(new Player(registerGame, Integer.valueOf(selectedRival), MoveState.START, null));
+				.startGame(new Player(Integer.valueOf(selectedRival), registerGame, MoveState.START, null), baseUrl);
 		if (Boolean.TRUE.equals(startGame)) {
-			System.out.println("Game is starting with player: " + selectedRival);
+			System.out.println("Game is starting with  -----> Player " + selectedRival);
 			DefaultConsumer consumer = new DefaultConsumer(channel) {
 				@Override
 				public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
 						byte[] body) throws IOException {
-					String message = new String(body, "UTF-8");
-					Player player = obj.readValue(message, Player.class);
+					Player player = obj.readValue(new String(body, "UTF-8"), Player.class);
 
 					Player nextMove = new Player();
 					nextMove.setPlayerId(player.getRivalId());
 					nextMove.setRivalId(player.getPlayerId());
+
 					if (player.getMoveState().equals(MoveState.END)) {
-						System.out.print("Winner : Player " + player.getPlayerId());
+						System.out.print("Winner : Player " + player.getRivalId());
 					} else {
-						System.out.print("Value is : " + player.getNextValue() + " Rival player is : "
-								+ player.getPlayerId() + " so select your choose in {-1, 0 , 1} : ");
+						System.out.print("Current Value : " + player.getNextValue() + " Rival : Player "
+								+ player.getRivalId() + " so select your choice in {-1, 0 , 1} : ");
 						String userChoice = scan.nextLine(); // Read user input
 
 						while (!GameClientConstants.suitNumbers.contains(userChoice)) {
-							System.out.print("You must select in {-1, 0 , 1} : ");
+							System.out.print("You should select one of them {-1, 0 , 1} : ");
 							userChoice = scan.nextLine(); // Read user input
 						}
 						Integer nextValue = (player.getNextValue() + Integer.valueOf(userChoice)) / 3;
@@ -96,13 +99,13 @@ public class TakeawayGameClientApplication implements CommandLineRunner {
 						if (nextValue == 1) {
 							nextMove.setMoveState(MoveState.END);
 							var writeValueAsString = obj.writeValueAsString(nextMove);
-							template.convertAndSend("x.game", nextMove.getRivalId().toString(), writeValueAsString);
+							template.convertAndSend("x.game", nextMove.getPlayerId().toString(), writeValueAsString);
 							System.out.print("Winner : Player " + player.getPlayerId());
 						} else {
 							nextMove.setMoveState(MoveState.NEXT_MOVE);
 							nextMove.setNextValue(nextValue);
 							var writeValueAsString = obj.writeValueAsString(nextMove);
-							template.convertAndSend("x.game", nextMove.getRivalId().toString(), writeValueAsString);
+							template.convertAndSend("x.game", nextMove.getPlayerId().toString(), writeValueAsString);
 						}
 					}
 				}

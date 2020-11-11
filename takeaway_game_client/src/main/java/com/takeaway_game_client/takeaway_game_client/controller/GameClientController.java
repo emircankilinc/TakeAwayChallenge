@@ -6,15 +6,14 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.takeaway_game_client.takeaway_game_client.entity.Player;
 
 public class GameClientController {
@@ -25,23 +24,22 @@ public class GameClientController {
 
 	private static RestTemplate restTemplate;
 
-	public Integer registerGame() {
+	public Integer registerGame(String baseUrl) {
 		String generatedString = UUID.randomUUID().toString();
 		restTemplate = new RestTemplate();
-		ResponseEntity<String> call = restTemplate.getForEntity(
-				"http://127.0.0.1:5555/register?playerId=" + generatedString.replace("-", ""), String.class);
+		ResponseEntity<String> call = restTemplate
+				.getForEntity(baseUrl + "/register?playerId=" + generatedString.replace("-", ""), String.class);
 		return Integer.valueOf(call.getBody());
 	}
 
-	public Collection<Integer> getActivePlayers(Integer playerId) {
+	public Collection<Integer> getActivePlayers(Integer playerId, String baseUrl) {
 		restTemplate = new RestTemplate();
-		ResponseEntity<Map> call = restTemplate.getForEntity("http://127.0.0.1:5555/active?playerId=" + playerId,
-				Map.class);
+		ResponseEntity<Map> call = restTemplate.getForEntity(baseUrl + "/active?playerId=" + playerId, Map.class);
 		Map<String, Integer> body = call.getBody();
 		return body.values();
 	}
 
-	public Boolean startGame(Player player) {
+	public Boolean startGame(Player player,String baseUrl) {
 		Random rand = new Random();
 		int upperbound = 500;
 		int int_random = rand.nextInt(upperbound);
@@ -49,7 +47,6 @@ public class GameClientController {
 
 		restTemplate = new RestTemplate();
 
-		String url = "http://127.0.0.1:5555/start";
 		headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		playerJsonObject = new JSONObject();
@@ -59,7 +56,8 @@ public class GameClientController {
 		playerJsonObject.put("nextValue", player.getNextValue());
 
 		HttpEntity<String> request = new HttpEntity<String>(playerJsonObject.toString(), headers);
-		ResponseEntity<Boolean> responseEntityPerson = restTemplate.postForEntity(url, request, Boolean.class);
+		ResponseEntity<Boolean> responseEntityPerson = restTemplate.postForEntity(baseUrl + "/start", request,
+				Boolean.class);
 		return responseEntityPerson.getBody();
 	}
 
